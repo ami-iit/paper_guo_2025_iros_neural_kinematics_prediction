@@ -16,6 +16,7 @@ import bipedal_locomotion_framework as blf
 import manifpy as manif
 import const as con
 from arg_utils import add_bool_arg
+import math_utils as maths
 
 ## constant config
 constants = {
@@ -114,18 +115,19 @@ class InertialDataLoader:
             "lv": 3
         }
     
-    def save_link_data(self, link_data):
+    def save_link_data(self, link_data, data_name):
         r"""save the link data if first time retrieved"""
-        # create directory to save raw link data if not exists
-        raw_dir = f"{self.save_link_path}/raw"
-        os.makedirs(raw_dir, exist_ok=True)
+        # create directory to save raw/processed/filtered link data if not exists
+        source_dir = f"{self.save_link_path}/{data_name}"
+        os.makedirs(source_dir, exist_ok=True)
 
         # get task identifier
         task_name = self.const["tasks"][self.args.task_idx]
 
         for key, data in link_data.items():
-            file_path = f"{raw_dir}/{key}_{task_name}.npy"
+            file_path = f"{source_dir}/{key}_{task_name}.npy"
             np.save(file_path, data)
+        print(f"Saved '{link_data}' to {source_dir}")
 
 
     def retrieve_raw_link_data(self):
@@ -172,8 +174,8 @@ class InertialDataLoader:
     def plot_link_data_feature(self, feature, link, data, data_type):
         r"""plot the feature of one joint in the raw/processed/filtered link data"""
         # check if link data exists
-        if not hasattr(self, data_type):
-            raise AttributeError(f"Link data type '{data_type}' doesn't exist yet!")
+        if not hasattr(self, str(data_type)):
+            raise AttributeError(f"Not found proper link data: '{data_type}'!")
         
         # check if the passed feature exists in link data
         if feature not in data:
@@ -213,7 +215,7 @@ class InertialDataLoader:
         r"""preserve minimum numbers of links"""
         # check if cutted link data exists
         if not hasattr(self, "link_data_cutted"):
-            raise AttributeError("Cutted link data doesn't exist yet!")
+            raise AttributeError("Not found proper cutted link data!")
             
         n_rows = self.link_data_cutted["lori"].shape[0]
         # initialize new reduced arrays
@@ -233,7 +235,51 @@ class InertialDataLoader:
 
     def convert_link_q2R(self):
         r"""Convert the link quaternion to rotation matrix"""
+        # check if reduced link data (cut head frames + min links) available
+        if not hasattr(self, "link_data_reduced"):
+            raise AttributeError("Not found proper reduced link data!")
+        
+        lori_as_q = self.link_data_reduced["lori"]
+        num_steps, num_links = lori_as_q.shape[0], len(con.min_links)
+        lori_as_R = np.zeros((num_steps, num_links*9))
 
+        for i in range(num_steps):
+            for j in range(num_links):
+                step_q = np.array(lori_as_q[i, j*4:(j+1)*4])
+                step_R = maths.convet_q2R(step_q)
+
+                det_R = np.linalg.det(step_R.reshape((3, 3)))
+                if not np.isclose(det_R, 1.0, atol=0.01):
+                    raise ValueError(f"Invalid rotation matrix determinant: {det_R}")
+                lori_as_R[i, j*9:(j+1)*9] = step_R.reshape((1, 9))
+
+        self.link_data_reduced["lori"] = lori_as_R
+        print(f"Updated link orientation array shape: {self.link_data_reduced["lori"].shape}")
+
+    def filter_link_data(self):
+        r"""Filter the reduced link data if required"""
+        # check if reduced link data (cut head frames + min links) available
+        if not hasattr(self, "link_data_reduced"):
+            raise AttributeError("Not found proper reduced link data!")
+        self.link_data_filtered = self.link_data_reduced.copy()
+
+        window_size = con.data_preprocessing["savitzky_window"]
+        polyorder = con.data_preprocessing["savitzky_order"]
+        for key, data in self.link_data_reduced.items():
+            self.link_data_filtered[key] = np.apply_along_axis(
+                lambda col: signal.savgol_filter(
+                    col,
+                    window_length=window_size,
+                    polyorder=polyorder
+                ),
+                axis=0, arr=data
+            )
+        print(f"Applied Savitzky-Golay filter with window {window_size}" 
+              f"and polyorder {polyorder} to reduced link data.")
+
+
+class InverseKinematicsLoader:
+    def __init__(self)
 
 
 
