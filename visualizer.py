@@ -64,7 +64,7 @@ class HumanURDFVisualizer:
         self.visualizer.camera().setPosition(root)
         self.visualizer.camera().setTarget(target)
 
-    def update(self, s_list, H_B_list, camera_offset):
+    def update(self, s_list, H_B_list, fix_camera, camera_offset):
         r"""
         Update the models with respecttive joint positions (s) and base poses (H).
         """
@@ -78,9 +78,12 @@ class HumanURDFVisualizer:
             T_b_list[i].fromHomogeneousTransform(idyntree.Matrix4x4(H_B))
         
         # update the camera pose 
-        camera_pos_root = T_b_list[0].getPosition() + idyntree.Position(np.array(camera_offset))
-        camera_pos_target = T_b_list[0].getPosition()
-        self.set_camera(camera_pos_root, camera_pos_target)
+        if fix_camera:
+            camera_pos_root = T_b_list[0].getPosition() + idyntree.Position(np.array(camera_offset))
+            camera_pos_target = T_b_list[0].getPosition()
+            self.set_camera(camera_pos_root, camera_pos_target)
+        else:
+            self.visualizer.camera().animator().enableMouseControl()
 
         # update the models
         for i, name in enumerate(self.model_names):

@@ -1,3 +1,36 @@
+# need to replace this ahrd-coded path
+human_urdf_path = "../urdf/humanSubject01_66dof.urdf"
+IK_config_path = "../config/humanIK.toml"
+
+IK_options = {
+    "full_tasks": [
+        "PELVIS_TASK", 
+        "LEFT_UPPER_LEG_TASK", 
+        "RIGHT_UPPER_LEG_TASK", 
+        "LEFT_LOWER_LEG_TASK", 
+        "RIGHT_LOWER_LEG_TASK", 
+        "LEFT_FOOT_TASK", 
+        "RIGHT_FOOT_TASK", 
+        "NECK_TASK",
+        "LEFT_SHOULDER_TASK", 
+        "RIGHT_SHOULDER_TASK", 
+        "HEAD_TASK", 
+        "LEFT_UPPER_ARM_TASK", 
+        "RIGHT_UPPER_ARM_TASK", 
+        "LEFT_FORE_ARM_TASK", 
+        "RIGHT_FORE_ARM_TASK", 
+        "LEFT_HAND_TASK", 
+        "RIGHT_HAND_TASK"
+        ],
+    "min_tasks": [
+        "PELVIS_TASK", 
+        "LEFT_LOWER_LEG_TASK", 
+        "RIGHT_LOWER_LEG_TASK", 
+        "LEFT_FORE_ARM_TASK", 
+        "RIGHT_FORE_ARM_TASK"
+        ]
+    }
+
 # vlinks in xsens mocap dataset
 links = [
     "Pelvis", # :3, :4

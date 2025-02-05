@@ -8,7 +8,7 @@ import numpy as np
 import manifpy as manif
 import datetime
 import visualizer as vis
-
+import const as con
 
 class InverseKinematicsSolver:
     def __init__(self, dt, urdf_path):
@@ -48,8 +48,8 @@ class InverseKinematicsSolver:
             [0., 0., 0., 1.0]
         ])
 
-        self.wb = idyntree.Twist()
-        self.wb.zero()
+        self.vb = idyntree.Twist()
+        self.vb.zero()
 
         self.gravity = idyntree.Vector3()
         self.gravity.zero()
@@ -94,7 +94,25 @@ class InverseKinematicsSolver:
         T = idyntree.Transform()
         T.setPosition(base_pos)
 
-        if isinstance()
+        if isinstance(base_rot, idyntree.Rotation):
+            T.setRotation(base_rot)
+        else:
+            T.setRotation(base_rot.rotation())
+
+        vb = idyntree.Twist()
+        vb.zero()
+
+        self.kindyncomp.setRobotState(T, jpos, vb, jpos*0, self.gravity)
+
+    def sleep(self, tic, toc):
+        delta_time = toc - tic
+        if delta_time < self.period:
+            blf.clock().sleep_for(self.period - delta_time)
+
+
+
+
+        
 
 
 
