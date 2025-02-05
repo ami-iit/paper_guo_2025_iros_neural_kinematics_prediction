@@ -74,6 +74,7 @@ class InertialDataLoader:
         if self.args.save_link_raw_data:
             self.save_link_data(self.link_data, "raw")
             print(f"Saved all rearranged raw link data to: {self.save_link_path}/raw")
+        return self.link_data
 
 
     def load_raw_link_data(self):
@@ -86,6 +87,7 @@ class InertialDataLoader:
                 self.link_data[key] = np.load(file_path)
             else:
                 raise FileNotFoundError("File not found: {file_path}")
+        return self.link_data
        
     def plot_link_data_feature(self, feature, link, data, data_type):
         r"""plot the feature of one joint in the raw/processed/filtered link data"""
@@ -126,6 +128,7 @@ class InertialDataLoader:
         }
         
         print(f"Cut {cut_frames} head frames from link data.")
+        return self.link_data_cutted
 
     def reduce_link(self):
         r"""preserve minimum numbers of links"""
@@ -148,6 +151,7 @@ class InertialDataLoader:
                 source_idx = getattr(con, f"min_links_{dim}d_index")[i]
                 reduced_data[key][:, start_idx:end_idx] = self.link_data_cutted[key][:, source_idx:source_idx+dim]
         self.link_data_reduced = reduced_data
+        return self.link_data_reduced
 
     def convert_link_q2R(self):
         r"""Convert the link quaternion to rotation matrix"""
@@ -171,6 +175,7 @@ class InertialDataLoader:
 
         self.link_data_reduced["lori"] = lori_as_R
         print(f"Updated link orientation array shape: {self.link_data_reduced["lori"].shape}")
+        return self.link_data_reduced
 
     def filter_link_data(self):
         r"""Filter the reduced link data if required"""
@@ -181,7 +186,7 @@ class InertialDataLoader:
 
         window_size = con.data_preprocessing["savitzky_window"]
         polyorder = con.data_preprocessing["savitzky_order"]
-        
+
         for key, data in self.link_data_reduced.items():
             self.link_data_filtered[key] = np.apply_along_axis(
                 lambda col: signal.savgol_filter(
@@ -193,3 +198,7 @@ class InertialDataLoader:
             )
         print(f"Applied Savitzky-Golay filter with window {window_size}" 
               f"and polyorder {polyorder} to reduced link data.")
+        
+        self.save_link_data(self.link_data_filtered, "filtered")
+        print(f"Saved all filtered link data to: {self.save_link_path}/filtered")
+        return self.link_data_filtered

@@ -7,10 +7,14 @@ import argparse
 from arg_utils import add_bool_arg
 from inertial_data_manager import InertialDataLoader as inertialLoader
 from ik_data_manager import InverseKinematicsLoader as ikLoader
+from nn_data_manager import IODataManager as iomanager
+import const as con
 
 
 if __name__ == '__main__':
-    ## constant config
+    ############
+    ## Config ##
+    ############
     constants = {
         "tasks": [
             "forward_walking_normal",
@@ -31,7 +35,9 @@ if __name__ == '__main__':
         }
     }
 
-    # config variables from user
+    #################
+    ## User Config ##
+    #################
     parser = argparse.ArgumentParser()
 
     # group for decision flags
@@ -84,6 +90,70 @@ if __name__ == '__main__':
         args.subject,
         constants["tasks"][args.task_idx]
     )
+
+    ##########################
+    ## Link Data Processing ##
+    ##########################
+    inertial_loader = inertialLoader(
+        const=constants, 
+        args=args, 
+        xsens_path=load_xsens_file_path,
+        save_link_path=save_link_data_path
+    )
+    if args.allow_link_computation:
+        if not args.exist_link_data:
+            # retrieve and save the raw link inertial data when first time running
+            # link_data (dict{arrays}) --> {lori, lacc, lw, lpos, lv}
+            link_data = inertial_loader.retrieve_raw_link_data()
+        else:
+            # load existing link inertial data
+            link_data = inertial_loader.load_raw_link_data()
+        
+        plot_raw_link_data = False
+        if plot_raw_link_data:
+            inertial_loader.plot_link_data_feature("lacc", "Pelvis", link_data, "link_data")
+
+        if args.cut_link_head_frames:
+            r"""using raw data as input"""
+            link_data_cutted = inertial_loader.cut_link_head_frames()
+        
+        if args.select_link_minimal:
+            r"""using cutted data as input"""
+            link_data_reduced = inertial_loader.reduce_link()
+
+        if args.convert_link_q2R:
+            r"""using reduced data as input"""
+            link_data_reduced_R = inertial_loader.convert_link_q2R()
+
+        if args.save_link_processed_data:
+            inertial_loader.save_link_data(link_data_reduced_R, "processed")
+
+        if args.allow_link_filter:
+            # automatically saved filtered data
+            link_data_filtered = inertial_loader.filter_link_data()
+
+        plot_filtered_link_data = False
+        if plot_filtered_link_data:
+            inertial_loader.plot_link_data_feature("lacc", "Pelvis", link_data_filtered, "link_data_filtered")
+    else:
+        print(f"No operation for link inertial data!")
+
+
+
+    ########################
+    ## IK Data Processing ##
+    ########################
+    ik_loader = ikLoader(
+        const=constants, 
+        args=args, 
+        urdf_path=con.human_urdf_path, 
+        ik_config_path=con.IK_config_path, 
+        save_ik_path=save_inv_kin_data_path,
+        link_data=1, 
+        allow_visualizer=True
+    )
+
+
 
 
 

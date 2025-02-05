@@ -253,7 +253,42 @@ class InverseKinematicsLoader:
         data_size = human_data["s"].shape[0]
         vlink_jacob = np.zeros((data_size, 6))
 
-        
-        return
+        for i in pbar(range(data_size), desc="Processing Frames"):
+            time.sleep(0.02)
+            pb_step = human_data["pb"][i, :].reshape((3, 1))
+            rb_step = human_data["rb"][i, :].reshape((3, 3))
+            vb_step = human_data["vb"][i, :].reshape((6, 1))
+            s_step = human_data["s"][i, :].reshape((dofs, 1))
+            sdot_step = human_data["sdot"][i, :].reshape((dofs, 1))
+
+            nu_step = np.vstack((vb_step, sdot_step))
+            Hb_step = np.matrix([[1.0, 0., 0., 0.], [0., 1.0, 0., 0.],
+                                [0., 0., 1.0, 0.], [0., 0., 0., 1.0]])
+            Hb_step[:3, :3] = rb_step
+            Hb_step[:3, 3] = pb_step
+            Hb.fromHomogeneousTransform(idyntree.Matrix4x4(Hb_step))
+
+            for j in range(s_step.shape[0]):
+                s.setVal(joint_name2index[j], s_step[j, 0])
+                sdot.setVal(joint_name2index[j], sdot_step[j, 0])
+
+            for k in range(6):
+                wb.setVal(k, vb_step[k, 0])
+
+            comp.setRobotState(Hb, s, wb, sdot, gravity)
+
+            # compute the link jacobian
+            jacob = idyntree.MatrixDynSize(6, dofs+6)
+            comp.getFrameFreeFloatingJacobian(link_name, jacob)
+            jacob_numerical = np.zeros((6, dofs+6))
+            for n_row in range(6):
+                for n_col in range(dofs+6):
+                    jacob_numerical[n_row, n_col] = jacob.getVal(n_row, n_col)
+
+            # compute the link twist
+            vlink_step = jacob_numerical @ nu_step
+            vlink_jacob[i, :] = vlink_step.reshape(6)
+
+        return vlink_jacob
 
         
