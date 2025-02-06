@@ -138,3 +138,13 @@ data_preprocessing = {
     "savitzky_window": 51,
     "savitzky_order": 5
 }
+
+motion_tasks = [
+    "task1_forward_walking_normal",
+    "task2_forward_walking_fast",
+    "task3_backward_walking_normal",
+    "task4_side_walking_normal",
+    "task5_forward_walking_lifting_arms",
+    "task6_forward_walking_waving_arms",
+    "task7_forward_walking_clapping_hands"
+]
