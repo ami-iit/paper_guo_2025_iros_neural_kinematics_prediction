@@ -42,6 +42,7 @@ if __name__ == '__main__':
 
     # group for decision flags
     flag_group = parser.add_argument_group("flags")
+    # link data
     add_bool_arg(flag_group, "allow_link_computation", default=False)
     add_bool_arg(flag_group, "exist_link_data", default=False)
     add_bool_arg(flag_group, "save_link_raw_data", default=False)
@@ -51,6 +52,7 @@ if __name__ == '__main__':
     add_bool_arg(flag_group, "convert_link_q2R", default=False)
     add_bool_arg(flag_group, "allow_link_filter", default=False)
 
+    # human ik data
     add_bool_arg(flag_group, "allow_inv_kin_computation", default=False)
     add_bool_arg(flag_group, "exist_inv_kin_data", default=False)
     add_bool_arg(flag_group, "save_inv_kin_raw_data", default=False)
@@ -60,7 +62,8 @@ if __name__ == '__main__':
     add_bool_arg(flag_group, "save_inv_kin_filtered_data", default=False)
     add_bool_arg(flag_group, "check_jacobians", default=False)
     add_bool_arg(flag_group, "save_vlink_from_jacobians", default=False)
-
+    
+    # nn data
     add_bool_arg(flag_group, "allow_nn_operations", default=False)
     add_bool_arg(flag_group, "align_link_inv_kin_data", default=False)
     add_bool_arg(flag_group, "split_link_inv_kin_data", default=False)
@@ -71,7 +74,6 @@ if __name__ == '__main__':
     path_group.add_argument("--subject", type=str, default="davide")
 
     args = parser.parse_args()
-
     # prepare the data paths (for now still kinda hard-coded path)
     load_xsens_file_path = "../ral_code/xsens_data/05_11_cheng_davide/{}/{}/{}.xlsx".format(
         args.subject, 
@@ -94,13 +96,14 @@ if __name__ == '__main__':
     ##########################
     ## Link Data Processing ##
     ##########################
-    inertial_loader = inertialLoader(
-        const=constants, 
-        args=args, 
-        xsens_path=load_xsens_file_path,
-        save_link_path=save_link_data_path
-    )
     if args.allow_link_computation:
+        # initialize the link data processor
+        inertial_loader = inertialLoader(
+            const=constants, 
+            args=args, 
+            xsens_path=load_xsens_file_path,
+            save_link_path=save_link_data_path
+        )
         if not args.exist_link_data:
             # retrieve and save the raw link inertial data when first time running
             # link_data (dict{arrays}) --> {lori, lacc, lw, lpos, lv}
@@ -143,15 +146,60 @@ if __name__ == '__main__':
     ########################
     ## IK Data Processing ##
     ########################
-    ik_loader = ikLoader(
-        const=constants, 
-        args=args, 
-        urdf_path=con.human_urdf_path, 
-        ik_config_path=con.IK_config_path, 
-        save_ik_path=save_inv_kin_data_path,
-        link_data=1, 
-        allow_visualizer=True
-    )
+    if args.allow_inv_kin_computation:
+        # initialize the IK data processor
+        ik_loader = ikLoader(
+            const=constants, 
+            args=args, 
+            urdf_path=con.human_urdf_path, 
+            ik_config_path=con.IK_config_path, 
+            save_ik_path=save_inv_kin_data_path,
+            link_data=1, 
+            allow_visualizer=True
+        )
+        if not args.exist_inv_kin_data:
+            # savik data defautly for first running
+            human_data_raw = ik_loader.run_first_inverse_kinematics()
+        else:
+            human_data_raw = ik_loader.load_invkin_data()
+
+        if args.cut_inv_kin_head_frames:
+            human_data_cutted = ik_loader.cut_head_frames()
+
+        if args.save_inv_kin_processed_data:
+            # save the cutted human data here
+            ik_loader.save_invkin_data(human_data_cutted, "processed")
+        
+        if args.allow_inv_kin_filter:
+            human_data_filtered = ik_loader.filter_invkin_data()
+            if args.save_inv_kin_filtered_data:
+                ik_loader.save_invkin_data(human_data_filtered, "filtered")
+        
+        if args.check_jacobians:
+            # defautly save the vlink data computed from Jacobians
+            ik_loader.check_jacobians("processed", human_data_cutted)
+    else:
+        print(f"No operation for human IK data!")
+
+    
+    ########################
+    ## NN Data Processing ##
+    ########################
+    if args.allow_nn_operations:
+        # initialize the nn data manager
+        nn_manager = iomanager(
+            link_data_path=args.save_link_data_path, 
+            human_data_path=args.save_inv_kin_data_path, 
+            save_nn_path=args.save_nn_data_path, 
+            operation="processed", 
+            task_name=constants["tasks"][args.task_idx]
+        )
+        if args.align_link_inv_kin_data:
+            # defautly save the aligned data
+            nn_manager.shift(n_shift=4)
+        if args.split_link_inv_kin_data:
+            # defautly save the splited train/test subsets
+            nn_manager.split(train_ratio=0.8)
 
 
 

@@ -2,14 +2,38 @@ import os
 import numpy as np
 
 class IODataManager:
-    def __init__(self, link_data, human_data, save_nn_path):
+    def __init__(self, link_data_path, human_data_path, save_nn_path, operation, task_name):
         r"""load processed (cutted but not filtered) link nad human data"""
-        self.link_data = link_data
-        self.human_data = human_data
+        self.link_data_path = link_data_path
+        self.human_data_path = human_data_path
         self.save_nn_path = save_nn_path
+        self.operation = operation
+        self.task_name = task_name
 
-    def save(self):
-        return
+        # retrieve the link data
+        self.link_features = ["lori", "lacc", "lpos", "lv", "lw"]
+        self.link_data = {
+            name: np.load(f"{self.link_data_path}/{self.operation}/{name}_{self.task_name}.npy")
+            for name in self.link_features
+        }
+        # retrieve the human state data
+        self.ik_features = ["pb", "rb", "vb", "s", "sdot"]
+        self.human_data = {
+            name: np.load(f"{self.human_data_path}/{self.operation}/{name}_{self.task_name}.npy")
+            for name in self.ik_features
+        }
+        self.vlink_vars = {
+            "vleft_foot": "vlink_LeftFoot_jacobian",
+            "vright_foot": "vlink_RightFoot_jacobian",
+            "vleft_arm": "vlink_LeftForeArm_jacobian",
+            "vright_arm": "vlink_RightForeArm_jacobian"
+        }
+        self.human_data.update(
+            {
+                key: np.load(f"{self.human_data_path}/{self.operation}/{filename}.npy")
+                for key, filename in self.vlink_vars.items()
+            }
+        )
     
     def shift(self, n_shift):
         r"""left/right shift link and IK data to align them"""

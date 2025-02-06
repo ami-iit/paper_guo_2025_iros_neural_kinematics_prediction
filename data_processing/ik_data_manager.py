@@ -129,6 +129,7 @@ class InverseKinematicsLoader:
         if self.args.save_inv_kin_raw_data:
             self.save_invkin_data(self.ik_res, "raw")
             print(f"Saved raw IK data to: {self.save_ik_path}/raw")
+        return self.ik_res
 
     def load_invkin_data(self):
         self.ik_res = {}
@@ -141,6 +142,7 @@ class InverseKinematicsLoader:
             except FileNotFoundError:
                 print(f"File not found: {file_path}")
                 self.ik_res[state] = None
+        return self.ik_res
         
     
     def cut_head_frames(self):
@@ -150,6 +152,7 @@ class InverseKinematicsLoader:
             for key, data in self.ik_res.items()
         }
         print(f"Cut {cut_frames} head frames from raw IK data.")
+        return self.ik_res_cutted
     
 
     def filter_invkin_data(self):
@@ -172,6 +175,7 @@ class InverseKinematicsLoader:
                 arr=data
             )
             self.ik_res_filtered[key] = filtered_value
+        return self.ik_res_filtered
 
     def check_jacobians(self, data_type, link_data):
         r"""
