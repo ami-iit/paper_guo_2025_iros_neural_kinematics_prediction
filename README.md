@@ -13,15 +13,13 @@ Cheng Guo, Giuseppe L'Erario, Giulio Romualdi and Daniele Pucci
 
 
 
-https://github.com/ami-iit/paper_Guo_2023_Humanoid_Action_Recognition_For_Risk_Prediction/assets/52885318/7200df81-d918-4133-ab9e-b0bae716360e
-
 
 
 </div>
 
 <div align="center">
   
-IEEE/RJS International Conference On Intelligent Robots and Systems (IROS), Hangzhou, China, 2025
+Submitted to IEEE/RJS International Conference On Intelligent Robots and Systems (IROS), Hangzhou, China, 2025
 
 </div>
 
@@ -33,4 +31,11 @@ IEEE/RJS International Conference On Intelligent Robots and Systems (IROS), Hang
   <a href><b>Paper</b></a> |
   <a href><b>Video</b></a> |
   <a href><b>Webpage</b></a>
+</div>
+
+</div>
+
+<div align="center">
+Under construction, code coming soonish...
+
 </div>
