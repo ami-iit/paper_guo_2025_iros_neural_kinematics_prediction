@@ -5,7 +5,8 @@
 
 <div align="center">
 
-Cheng Guo, Giuseppe L'Erario, Giulio Romualdi and Daniele Pucci
+Cheng Guo, Giuseppe L'Erario, Giulio Romualdi, <br>
+Mattia Leonori, Marta Lorenzini, Arash Ajoudani and Daniele Pucci
 
 </div>
 
