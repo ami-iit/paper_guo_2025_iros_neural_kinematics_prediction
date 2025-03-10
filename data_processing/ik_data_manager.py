@@ -9,9 +9,9 @@ import bipedal_locomotion_framework as blf
 import idyntree.bindings as idyntree
 import manifpy as manif
 import const as con
-import math_utils as maths
+from utils import math_utils as maths
 import visualizer as vis
-import InverseKinematicsSolver as iksolver
+from inverse_kinematics import InverseKinematicsSolver as iksolver
 
 ##===========================##
 ## Inverse Kinematics Loader ##

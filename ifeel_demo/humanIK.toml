@@ -1,0 +1,124 @@
+tasks = ["PELVIS_TASK", "LEFT_UPPER_LEG_TASK", "RIGHT_UPPER_LEG_TASK", "LEFT_LOWER_LEG_TASK", "RIGHT_LOWER_LEG_TASK", "LEFT_FOOT_TASK", "RIGHT_FOOT_TASK", "LEFT_UPPER_ARM_TASK", "RIGHT_UPPER_ARM_TASK", "LEFT_FORE_ARM_TASK", "RIGHT_FORE_ARM_TASK", "T8_TASK", "JOINT_REGULARIZATION_TASK"]
+verbosity = false
+
+[IK]
+robot_velocity_variable_name = "robot_velocity"
+
+
+[PELVIS_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "Pelvis"
+kp_angular                   =  10.0
+
+[LEFT_UPPER_LEG_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "LeftUpperLeg"
+kp_angular                   =  10.0
+
+
+[RIGHT_UPPER_LEG_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "RightUpperLeg"
+kp_angular                   =  10.0
+
+[LEFT_LOWER_LEG_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "LeftLowerLeg"
+kp_angular                   =  10.0
+
+[RIGHT_LOWER_LEG_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "RightLowerLeg"
+kp_angular                   =  10.0
+
+[LEFT_FOOT_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "LeftFoot"
+kp_angular                   =  10.0
+
+
+[RIGHT_FOOT_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "RightFoot"
+kp_angular                   =  10.0
+
+
+[LEFT_UPPER_ARM_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "LeftUpperArm"
+kp_angular                   =  10.0
+
+
+[RIGHT_UPPER_ARM_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "RightUpperArm"
+kp_angular                   =  10.0
+
+[LEFT_FORE_ARM_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "LeftForeArm"
+kp_angular                   =  10.0
+
+[RIGHT_FORE_ARM_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "RightForeArm"
+kp_angular                   =  10.0
+
+
+[T8_TASK]
+type = "SO3Task"
+priority = 0
+
+robot_velocity_variable_name =  "robot_velocity"
+frame_name                   =  "RightHand"
+kp_angular                   =  10.0
+
+
+[JOINT_REGULARIZATION_TASK]
+type = "JointTrackingTask"
+weight = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+priority = 1
+
+kp = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+
+
+
+
+
+
+
+
