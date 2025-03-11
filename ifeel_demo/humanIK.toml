@@ -103,7 +103,7 @@ type = "SO3Task"
 priority = 0
 
 robot_velocity_variable_name =  "robot_velocity"
-frame_name                   =  "RightHand"
+frame_name                   =  "T8"
 kp_angular                   =  10.0
 
 

@@ -91,6 +91,7 @@ class InverseKinematicsSolver:
     def update_kinDynComp(self, base_pos, base_rot, jpos):
         T = idyntree.Transform()
         T.setPosition(base_pos)
+        #print(f"base rot type: {type(base_rot)}")
 
         if not isinstance(base_rot, idyntree.Rotation):
             T.setRotation(base_rot)

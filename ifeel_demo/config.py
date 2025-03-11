@@ -79,18 +79,18 @@ links = {
 }
 
 IK_tasks = [
-    "PELVIS_TASK",
-    "LEFT_UPPER_LEG_TASK",
-    "RIGHT_UPPER_LEG_TASK",
-    "LEFT_LOWER_LEG_TASK",
-    "RIGHT_LOWER_LEG_TASK",
     "LEFT_FOOT_TASK",
     "RIGHT_FOOT_TASK",
-    "LEFT_UPPER_ARM_TASK",
-    "RIGHT_UPPER_ARM_TASK",
+    "PELVIS_TASK",
     "LEFT_FORE_ARM_TASK",
+    "LEFT_UPPER_ARM_TASK",
+    "T8_TASK",
+    "RIGHT_UPPER_ARM_TASK",
     "RIGHT_FORE_ARM_TASK",
-    "T8_TASK"
+    "LEFT_UPPER_LEG_TASK",
+    "LEFT_LOWER_LEG_TASK",
+    "RIGHT_UPPER_LEG_TASK",
+    "RIGHT_LOWER_LEG_TASK"
 ]
 
 link2imu_matrix = {
@@ -107,3 +107,19 @@ link2imu_matrix = {
     "RightFoot": np.matrix([[0.0, 1.0, 0.0,], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]),
     "LeftFoot": np.matrix([[0.0, 1.0, 0.0,], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
 }
+
+only_links = [
+    "LeftFoot",
+    "RightFoot",
+    "Pelvis",
+    "LeftForeArm",
+    "LeftUpperArm",
+    "T8",
+    "RightUpperArm",
+    "RightForeArm",
+    "LeftUpperLeg",
+    "LeftLowerLeg",
+    "RightUpperLeg",
+    "RightLowerLeg"
+]
+link2world_matrix = {link: np.eye(3) for link in only_links}
