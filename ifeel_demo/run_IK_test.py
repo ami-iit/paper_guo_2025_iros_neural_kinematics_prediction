@@ -98,8 +98,11 @@ if __name__ == "__main__":
         rb_euler_baf = base_states[task]['base_orientation'][i].reshape(3,)
         rb_matrix_baf = maths.euler_to_rotation_matrix(rb_euler_baf, False)
 
-        pb = pb_blf
-        rb = rb_blf.rotation()
+        use_baf_base = True
+        if use_baf_base:
+            pb, rb = pb_baf, rb_matrix_baf
+        else:
+            pb, rb = pb_blf, rb_blf.rotation()
         j_pos = j_pos_blf
 
         manager.update_kinDynComp(pb, rb, j_pos)
