@@ -13,8 +13,8 @@ def quaternion_to_rotation_matrix(q):
 def euler_to_rotation_matrix(rpy, flag):
     if flag:
         rpy = np.radians([rpy[0], rpy[1], rpy[2]])
-    else:
-        rpy += np.radians([0, 15, 0])
+    """ else:
+        rpy += np.radians([0, 15, 0]) """
     
     return rot.from_euler('xyz', rpy).as_matrix()
 

@@ -40,17 +40,59 @@ def inertial_step(imus, task, step, calib):
         acc[:, :, i*3:(i+1)*3] = link_acc_step
         # calibrate the imu ori
         link_R = maths.quaternion_to_rotation_matrix(link_ori_step.reshape((4,)))
-        link_R_calib = calib[node_name] @ link_R @ cfg.link2imu_matrix[link].reshape((1, 1, 9))
+        #print(f"calib R shape: {calib[node_name].shape}")
+        #print(f"link R shape: {link_R.shape}")
+        #print(f"link2imu R shape: {cfg.link2imu_matrix[link].shape}")
+        link_R_calib = calib[node_name] @ link_R @ cfg.link2imu_matrix[link]
         # append the ori into the array
-        ori[:, :, i*9:(i+1)*9] = link_R_calib
+        ori[:, :, i*9:(i+1)*9] = link_R_calib.reshape((1, 1, 9))
     return gyro, acc, ori
 
-def base_step(bases, step):
-    return
+def base_step(bases, task, step):
+    r"""
+    Return three arrays:
+        - base position of shape (1, 1, 3)
+        - base orientation (as R) of shape (1, 1, 9)
+        - base velocity of shape (1, 1, 6)
+    """
+    #pb, rb, vb = np.zeros((1, 1, 3)), np.zeros((1, 1, 9)), np.zeros((1, 1, 6))
+    pb_step = bases[task]["base_position"][step:step+1, :, :].reshape((1, 1, 3))
+    # handle base velocities
+    vb_step = bases[task]["base_linear_velocity"][step:step+1, :, :].reshape((1, 1, 3))
+    wb_step = bases[task]["base_angular_velocity"][step:step+1, :, :].reshape((1, 1, 3))
+    vb_step_6D = np.concatenate((vb_step, wb_step), axis=-1)
+    # handle base orientation
+    rb_step_as_euler = bases[task]["base_orientation"][step:step+1, :, :].reshape((3,))
+    rb_step = maths.euler_to_rotation_matrix(rb_step_as_euler, False).reshape((1, 1, 9))
+    return pb_step, vb_step_6D, rb_step
 
-def joint_step(joint_states, step):
-    return
+def joint_step(joint_states, task, step, mapping):
+    r"""
+    Return two arrays:
+        - joint position gt of shape (1, 1, 31)
+        - joint velocity gt of shape (1, 1, 31)
+    NOTE: need to reorder the joint indices!
+    """
+    jpos_step, jvel_step = np.zeros((1, 1, 31)), np.zeros((1, 1, 31))
+    jpos = joint_states[task]["positions"][step:step+1, :, :].reshape((1, 1, 31))
+    jvel = joint_states[task]["velocities"][step:step+1, :, :].reshape((1, 1, 31))
 
+    # reorder the joint index
+    for i in range(len(mapping)):
+        jpos_step[:, :, mapping[i]] = jpos[:, :, i:i+1]
+        jvel_step[:, :, mapping[i]] = jvel[:, :, i:i+1]
+    return jpos_step, jvel_step
+
+def extend_joint_state_preds(s, sdot, old_joint_list, new_joint_list):
+    r"""Return the extended joint predictions."""
+    new_dof = len(new_joint_list)
+    s_new, sdot_new = np.zeros(new_dof, ), np.zeros(new_dof, )
+    joint_map = {joint: i for i, joint in enumerate(new_joint_list)}
+    for i, joint in enumerate(old_joint_list):
+        joint_index = joint_map[joint]
+        s_new[joint_index] = s[i]
+        sdot_new[joint_index] = sdot[i]
+    return s_new, sdot_new
 
 if __name__ == '__main__':
     # config
@@ -60,18 +102,18 @@ if __name__ == '__main__':
         "forward_walking": "./models/jknet_forward.pt",
         "side_stepping": "./models/jknet_side.pt",
         "forward_walking_clapping_hands": "./models/jknet_clapping.pt",
-        "backward_walking": "./models/jknet_backward"
+        "backward_walking": "./models/jknet_backward.pt"
     }
-    task = cfg.tasks[0]
+    task = cfg.tasks[2]
     print(f"Task: {task}")
 
-    is_wholebody_task = False
+    is_wholebody_task = True
     link_refs = cfg.wholebody_links if is_wholebody_task else cfg.locomotion_links
 
     pred_dofs = 31
     avatar_dofs = 66
     t_gt = 0
-    t_pred = 10 # max 60
+    t_pred = 1 # max 60
     window_size = 10
     t_end = window_size - 1
 
@@ -101,7 +143,7 @@ if __name__ == '__main__':
     visualizer.load_model(colors=[(0.2 , 0.2, 0.2, 0.6), (1.0 , 0.2, 0.2, 0.3)])
     Hb_gt = np.matrix([[1.0, 0., 0., 0.], [0., 1.0, 0., 0.],
                        [0., 0., 1.0, 0.], [0., 0., 0., 1.0]])
-    Hb_pred = np.matrix([[1.0, 0., 0., 0.], [0., 1.0, 0., 0.],
+    Hb_pred = np.matrix([[1.0, 0., 0., 1.], [0., 1.0, 0., 0.],
                          [0., 0., 1.0, 0.], [0., 0., 0., 1.0]])
     
     # prepare the offline data
@@ -116,14 +158,14 @@ if __name__ == '__main__':
     start_point = 300
     s_buffer, sdot_buffer = np.zeros((1, window_size, pred_dofs)), np.zeros((1, window_size, pred_dofs))
 
-    idx_mapping = [cfg.joints_31dof.index(item) for item in cfg.joints]
+    joint_mapping = [cfg.joints_31dof.index(item) for item in cfg.joints]
     print(joint_states[task]['positions'][start_point:start_point+window_size, :, :1].shape)
 
-    for i in range(len(idx_mapping)):
+    for i in range(len(joint_mapping)):
         jpos_gt = joint_states[task]['positions'][start_point:start_point+window_size, :, i:i+1].reshape((1, 10, 1))
         jvel_gt = joint_states[task]['velocities'][start_point:start_point+window_size, :, i:i+1].reshape((1, 10, 1))
-        s_buffer[:, :, idx_mapping[i]:idx_mapping[i]+1] = jpos_gt
-        sdot_buffer[:, :, idx_mapping[i]:idx_mapping[i]+1] = jvel_gt
+        s_buffer[:, :, joint_mapping[i]:joint_mapping[i]+1] = jpos_gt
+        sdot_buffer[:, :, joint_mapping[i]:joint_mapping[i]+1] = jvel_gt
     
     """ s_buffer_tensor = torch.from_numpy(np.array(s_buffer)).to(dtype=torch.float64, device=device)
     sdot_buffer_tensor = torch.from_numpy(np.array(sdot_buffer)).to(dtype=torch.float64, device=device) """
@@ -154,9 +196,9 @@ if __name__ == '__main__':
     # start the offline inference through the imu data
     with torch.no_grad():
         print(f"start prediction...")
-        for step in pbar(range(start_point, K_steps)):
+        for step in pbar(range(start_point, K_steps-t_pred)):
             #print(f"step: {step}")
-            # read current step of imu data (acc, ori_R, gyro)
+            # read current step t of imu data (acc, ori_R, gyro)
             r"""
             NOTE:
             1) link linear velocity currently not available
@@ -182,35 +224,74 @@ if __name__ == '__main__':
                 acc_buffer[:, -1:, :] = acc
                 ori_buffer[:, -1:, :] = ori
             #counter += 1
+            acc_buffer_tensor = torch.from_numpy(acc_buffer).to(dtype=torch.float64, device=device)
+            ori_buffer_tensor = torch.from_numpy(ori_buffer).to(dtype=torch.float64, device=device)
 
-            # read current step base pose and velocity
+            # read current step t base pose and velocity
             # NOTE: base gt from BAF
-            pb, rb, vb = base_step()
+            pb, vb, rb = base_step(base_states, task, step)
             pb_tensor = torch.from_numpy(pb).to(dtype=torch.float64, device=device)
-            rb_tensor = torch.from_numpy(rb).to(dtype=torch.float64, device=device)
             vb_tensor = torch.from_numpy(vb).to(dtype=torch.float64, device=device)
+            rb_tensor = torch.from_numpy(rb).to(dtype=torch.float64, device=device)
 
-            # read current step joint state gt
+            pb_future, vb_future, rb_future = base_step(base_states, task, step+t_pred)
+            pb_future_tensor = torch.from_numpy(pb_future).to(dtype=torch.float64, device=device)
+            v_futureb_tensor = torch.from_numpy(vb_future).to(dtype=torch.float64, device=device)
+            rb_future_tensor = torch.from_numpy(rb_future).to(dtype=torch.float64, device=device)
+
+            # read current step t joint state gt (31 dof)
             # NOTE: joint state gt from BAF
-            s_gt, sdot_gt = joint_step()
+            s_gt, sdot_gt = joint_step(joint_states, task, step, joint_mapping)
             s_gt_tensor = torch.from_numpy(s_gt).to(dtype=torch.float64, device=device)
             sdot_gt_tensor = torch.from_numpy(sdot_gt).to(dtype=torch.float64, device=device)
 
-            # start prediction (31 dof)
-            acc_buffer_tensor = torch.from_numpy(acc_buffer).to(dtype=torch.float64, device=device)
-            ori_buffer_tensor = torch.from_numpy(ori_buffer).to(dtype=torch.float64, device=device)
+            # start prediction t:t+60 (31 dof)
             s_buffer_tensor = torch.from_numpy(np.array(s_buffer)).to(dtype=torch.float64, device=device)
             sdot_buffer_tensor = torch.from_numpy(np.array(sdot_buffer)).to(dtype=torch.float64, device=device)
             s_pred, sdot_pred = model(acc_buffer_tensor, ori_buffer_tensor, s_buffer_tensor, sdot_buffer_tensor)
 
+            # pick the desired one-step prediction
+            s_pred_step = s_pred.cpu().detach().numpy()[0][t_pred, :]
+            sdot_pred_step = sdot_pred.cpu().detach().numpy()[0][t_pred, :]
+            print(f"s pred step shape: {s_pred_step.shape}")
 
-            # update the joint buffer (31 dof)
+            # extend the one-step joint state (gt and pred) to 66 dof
+            s_pred_step_new, sdot_pred_step_new = extend_joint_state_preds(
+                s_pred_step,
+                sdot_pred_step,
+                cfg.joints_31dof, cfg.joints_66dof
+            )
+            s_gt_step_new, sdot_gt_step_new = extend_joint_state_preds(
+                s_gt.reshape((31, )), 
+                sdot_gt.reshape((31, )),
+                cfg.joints_31dof, cfg.joints_66dof
+            )
+
+            # update the joint buffer arrays (31 dof)
             # NOTE: currently update with BAF computation
-            
+            # TODO: we should repalce it with a refinement process!
+            s_buffer[:, :t_end, :] = s_buffer[:, 1:, :]
+            sdot_buffer[:, :t_end, :] = sdot_buffer[:, 1:, :]
+            s_buffer[:, t_end:, :] = s_gt
+            sdot_buffer[:, t_end:, :] = sdot_gt
 
             # (optional) publish to yarp
 
             # update the visualizer: gt and pred (66 dof)
+            Hb_gt[:3, :3] = rb.reshape((3, 3))
+            Hb_gt[:3, 3] = pb.reshape((3, 1))
+            Hb_pred[:3, :3] = rb_future.reshape((3, 3))
+            Hb_pred[:3, 3] = pb_future.reshape((3, 1)) + np.array([1, 0, 0]).reshape((3, 1))
+
+            visualizer.update(
+                [s_gt_step_new, s_pred_step_new],
+                [Hb_gt, Hb_pred],
+                False, None
+            )
+            visualizer.run()
+
+
+
 
 
 
