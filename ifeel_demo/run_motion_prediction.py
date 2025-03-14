@@ -1,8 +1,8 @@
 import numpy as np
-import pandas as pd
 import os
-import time
 from progressbar import progressbar as pbar
+from scipy.ndimage import gaussian_filter1d
+from scipy.signal import butter, filtfilt
 import torch
 
 import visualizer as vis
@@ -11,7 +11,7 @@ from JKNet import pMLP
 import config as cfg
 from calibrator import Calibrator
 import maths
-import idyntree.bindings as idynbind
+
 from adam.casadi import KinDynComputations as casakin
 from adam import Representations
 
@@ -94,26 +94,44 @@ def extend_joint_state_preds(s, sdot, old_joint_list, new_joint_list):
         sdot_new[joint_index] = sdot[i]
     return s_new, sdot_new
 
+def butter_lowpass_filter(data, cutoff=0.1, fs=1.0, order=2):
+    nyquist = 0.5*fs
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return np.apply_along_axis(lambda m: filtfilt(b, a, m), axis=0, arr=data)
+
 if __name__ == '__main__':
     # config
     load_data_dir = "./data/processed"
     urdf_path = "./urdf/humanSubject01_66dof.urdf"
+    
     model_dirs = {
         "forward_walking": "./models/jknet_forward.pt",
         "side_stepping": "./models/jknet_side.pt",
         "forward_walking_clapping_hands": "./models/jknet_clapping.pt",
         "backward_walking": "./models/jknet_backward.pt"
     }
-    task = cfg.tasks[2]
+    finetuned_model_dirs = {
+        "forward_walking": "./models/finetuned/forward/model_epoch16_0.19126.pt",
+        "side_stepping": "./models/finetuned/side/model_epoch60_0.21632.pt",
+        "forward_walking_clapping_hands": "./models/finetuned/clapping/model_epoch60_0.31320.pt",
+        "backward_walking": "./models/finetuned/backward/model_epoch60_0.22817.pt"
+    }
+    USE_FINETUNED  =True
+    task = cfg.tasks[1]
     print(f"Task: {task}")
 
-    is_wholebody_task = True
+    loco_task = ["forward_walking", "side_stepping", "backward_walking"]
+    if task not in loco_task:
+        is_wholebody_task = True
+    else:
+        is_wholebody_task = False
     link_refs = cfg.wholebody_links if is_wholebody_task else cfg.locomotion_links
 
     pred_dofs = 31
     avatar_dofs = 66
     t_gt = 0
-    t_pred = 1 # max 60
+    t_pred = 0 # max 60
     window_size = 10
     t_end = window_size - 1
 
@@ -132,7 +150,10 @@ if __name__ == '__main__':
         use_buffer=True,
         wholebody=is_wholebody_task
     )
-    model.load_state_dict(torch.load(model_dirs[task]))
+    if USE_FINETUNED:
+        model.load_state_dict(torch.load(finetuned_model_dirs[task]))
+    else:
+        model.load_state_dict(torch.load(model_dirs[task]))
     model.eval()
 
     # initialize the optimizer
@@ -143,7 +164,7 @@ if __name__ == '__main__':
     visualizer.load_model(colors=[(0.2 , 0.2, 0.2, 0.6), (1.0 , 0.2, 0.2, 0.3)])
     Hb_gt = np.matrix([[1.0, 0., 0., 0.], [0., 1.0, 0., 0.],
                        [0., 0., 1.0, 0.], [0., 0., 0., 1.0]])
-    Hb_pred = np.matrix([[1.0, 0., 0., 1.], [0., 1.0, 0., 0.],
+    Hb_pred = np.matrix([[1.0, 0., 0., 0.], [0., 1.0, 0., 0.],
                          [0., 0., 1.0, 0.], [0., 0., 0., 1.0]])
     
     # prepare the offline data
@@ -249,11 +270,24 @@ if __name__ == '__main__':
             s_buffer_tensor = torch.from_numpy(np.array(s_buffer)).to(dtype=torch.float64, device=device)
             sdot_buffer_tensor = torch.from_numpy(np.array(sdot_buffer)).to(dtype=torch.float64, device=device)
             s_pred, sdot_pred = model(acc_buffer_tensor, ori_buffer_tensor, s_buffer_tensor, sdot_buffer_tensor)
+            # smooth the prediction seq
+            cutoff = 20
+            s_pred_smoothed = butter_lowpass_filter(
+                s_pred.cpu().detach().numpy()[0], cutoff=cutoff, fs=60
+            )
+            sdot_pred_smoothed = butter_lowpass_filter(
+                sdot_pred.cpu().detach().numpy()[0], cutoff=cutoff, fs=60
+            )
 
             # pick the desired one-step prediction
-            s_pred_step = s_pred.cpu().detach().numpy()[0][t_pred, :]
-            sdot_pred_step = sdot_pred.cpu().detach().numpy()[0][t_pred, :]
-            print(f"s pred step shape: {s_pred_step.shape}")
+            USE_SMOOTHED_PRED = True
+            if USE_SMOOTHED_PRED:
+                s_pred_step = s_pred_smoothed[t_pred, :]
+                sdot_pred_step = sdot_pred_smoothed[t_pred, :]
+            else:
+                s_pred_step = s_pred.cpu().detach().numpy()[0][t_pred, :]
+                sdot_pred_step = sdot_pred.cpu().detach().numpy()[0][t_pred, :]
+            #print(f"s pred step shape: {s_pred_step.shape}")
 
             # extend the one-step joint state (gt and pred) to 66 dof
             s_pred_step_new, sdot_pred_step_new = extend_joint_state_preds(
@@ -281,7 +315,8 @@ if __name__ == '__main__':
             Hb_gt[:3, :3] = rb.reshape((3, 3))
             Hb_gt[:3, 3] = pb.reshape((3, 1))
             Hb_pred[:3, :3] = rb_future.reshape((3, 3))
-            Hb_pred[:3, 3] = pb_future.reshape((3, 1)) + np.array([1, 0, 0]).reshape((3, 1))
+            #Hb_pred[:3, 3] = pb_future.reshape((3, 1)) + np.array([0, 1, 0]).reshape((3, 1))
+            Hb_pred[:3, 3] = pb_future.reshape((3, 1))
 
             visualizer.update(
                 [s_gt_step_new, s_pred_step_new],
