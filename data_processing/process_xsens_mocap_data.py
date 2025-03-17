@@ -4,7 +4,7 @@ Process the raw Xsens MoCap data to have:
     - Proper output data: joint and base kinematics
 """
 import argparse
-from arg_utils import add_bool_arg
+from utils import arg_utils as autils
 from inertial_data_manager import InertialDataLoader as inertialLoader
 from ik_data_manager import InverseKinematicsLoader as ikLoader
 from nn_data_manager import IODataManager as iomanager
@@ -43,30 +43,30 @@ if __name__ == '__main__':
     # group for decision flags
     flag_group = parser.add_argument_group("flags")
     # link data
-    add_bool_arg(flag_group, "allow_link_computation", default=False)
-    add_bool_arg(flag_group, "exist_link_data", default=False)
-    add_bool_arg(flag_group, "save_link_raw_data", default=False)
-    add_bool_arg(flag_group, "save_link_processed_data", default=False)
-    add_bool_arg(flag_group, "cut_link_head_frames", default=False)
-    add_bool_arg(flag_group, "select_link_minimal", default=False)
-    add_bool_arg(flag_group, "convert_link_q2R", default=False)
-    add_bool_arg(flag_group, "allow_link_filter", default=False)
+    autils.add_bool_arg(flag_group, "allow_link_computation", default=False)
+    autils.add_bool_arg(flag_group, "exist_link_data", default=False)
+    autils.add_bool_arg(flag_group, "save_link_raw_data", default=False)
+    autils.add_bool_arg(flag_group, "save_link_processed_data", default=False)
+    autils.add_bool_arg(flag_group, "cut_link_head_frames", default=False)
+    autils.add_bool_arg(flag_group, "select_link_minimal", default=False)
+    autils.add_bool_arg(flag_group, "convert_link_q2R", default=False)
+    autils.add_bool_arg(flag_group, "allow_link_filter", default=False)
 
     # human ik data
-    add_bool_arg(flag_group, "allow_inv_kin_computation", default=False)
-    add_bool_arg(flag_group, "exist_inv_kin_data", default=False)
-    add_bool_arg(flag_group, "save_inv_kin_raw_data", default=False)
-    add_bool_arg(flag_group, "save_inv_kin_processed_data", default=False)
-    add_bool_arg(flag_group, "cut_inv_kin_head_frames", default=False)
-    add_bool_arg(flag_group, "allow_inv_kin_filter", default=False)
-    add_bool_arg(flag_group, "save_inv_kin_filtered_data", default=False)
-    add_bool_arg(flag_group, "check_jacobians", default=False)
-    add_bool_arg(flag_group, "save_vlink_from_jacobians", default=False)
+    autils.add_bool_arg(flag_group, "allow_inv_kin_computation", default=False)
+    autils.add_bool_arg(flag_group, "exist_inv_kin_data", default=False)
+    autils.add_bool_arg(flag_group, "save_inv_kin_raw_data", default=False)
+    autils.add_bool_arg(flag_group, "save_inv_kin_processed_data", default=False)
+    autils.add_bool_arg(flag_group, "cut_inv_kin_head_frames", default=False)
+    autils.add_bool_arg(flag_group, "allow_inv_kin_filter", default=False)
+    autils.add_bool_arg(flag_group, "save_inv_kin_filtered_data", default=False)
+    autils.add_bool_arg(flag_group, "check_jacobians", default=False)
+    autils.add_bool_arg(flag_group, "save_vlink_from_jacobians", default=False)
     
     # nn data
-    add_bool_arg(flag_group, "allow_nn_operations", default=False)
-    add_bool_arg(flag_group, "align_link_inv_kin_data", default=False)
-    add_bool_arg(flag_group, "split_link_inv_kin_data", default=False)
+    autils.add_bool_arg(flag_group, "allow_nn_operations", default=False)
+    autils.add_bool_arg(flag_group, "align_link_inv_kin_data", default=False)
+    autils.add_bool_arg(flag_group, "split_link_inv_kin_data", default=False)
 
     # group for paths 
     path_group = parser.add_argument_group("paths")

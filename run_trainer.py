@@ -3,12 +3,15 @@ from torch import nn
 from torch.optim.lr_scheduler import StepLR
 from torch.optim import Adam
 import argparse
-from arg_utils import add_bool_arg
+import sys
 
+from utils import arg_utils as autils
+import const as con
+from trainer import Trainer
 from adam.pytorch import KinDynComputations
 from adam import Representations
 
-import const as con
+
 
 if __name__ == '__main__':
     #################
@@ -46,15 +49,16 @@ if __name__ == '__main__':
     
 
     # ------------------ booleans ----------------- #
-    add_bool_arg(parser, "gradien_clipping", default=True)
-    add_bool_arg(parser, "gradien_manipulation", default=True)
-    add_bool_arg(parser, "use_buffer", default=False)
-    add_bool_arg(parser, "is_wholebody", default=False)
+    autils.add_bool_arg(parser, "gradien_clipping", default=True)
+    autils.add_bool_arg(parser, "gradien_manipulation", default=True)
+    autils.add_bool_arg(parser, "use_buffer", default=False)
+    autils.add_bool_arg(parser, "is_wholebody", default=False)
 
     args = parser.parse_args()
     ######################
     ## In-script Config ##
     ######################
+    
     task_name = con.motion_tasks[args.task_idx]
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
