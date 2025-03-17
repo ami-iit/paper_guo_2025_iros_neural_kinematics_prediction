@@ -7,10 +7,17 @@ from torch import nn
 
 class Trainer:
     def __init__(self, problem, iterators, devices, params):
+        r"""
+        Mode 1: Train the network with the Xsens data (data-fit + physics-informed).
+            - SMPL-based Mocap data: to-do-list.
+            - Custom Xsens data: current scheme.
+        Mode 2: Finetune the pretrained model with iFeel data (only data-fit).
+        """
         self.model = problem['model']
         self.criterion = problem['criterion']
         self.optimizer = problem['optimizer']
         self.lr_scheduler = problem['lr_scheduler']
+        self.mode = problem['mode']
 
         self.train_loader = iterators['train']
         self.val_loader = iterators['val']

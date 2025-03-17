@@ -8,6 +8,7 @@ import sys
 from utils import arg_utils as autils
 import const as con
 from trainer import Trainer
+from dataset_factory import dataset_manager as dm
 from adam.pytorch import KinDynComputations
 from adam import Representations
 
@@ -17,6 +18,7 @@ if __name__ == '__main__':
     #################
     ## User Config ##
     #################
+    # change default values if needed
     parser = argparse.ArgumentParser()
     # ------------------ sliding window ----------------- #
     parser.add_argument("--window_size", type=int, default=10)
@@ -38,6 +40,7 @@ if __name__ == '__main__':
     parser.add_argument("--clip", type=int, default=5)
     parser.add_argument("--dofs", type=int, default=31)
     parser.add_argument("--task_idx", type=int, default=0)
+    parser.add_argument("--mode", type=str, default="pre_training")
 
     # ------------------ lr scheduler and optimizer ----------------- #
     parser.add_argument("--lr_init", type=float, default=1e-3)
@@ -47,7 +50,6 @@ if __name__ == '__main__':
     parser.add_argument("--step_lr_size", type=int, default=5)
     parser.add_argument("--step_lr_gamma", type=float, default=0.5)
     
-
     # ------------------ booleans ----------------- #
     autils.add_bool_arg(parser, "gradien_clipping", default=True)
     autils.add_bool_arg(parser, "gradien_manipulation", default=True)
@@ -58,17 +60,32 @@ if __name__ == '__main__':
     ######################
     ## In-script Config ##
     ######################
-    
-    task_name = con.motion_tasks[args.task_idx]
-
+    print(f"Train mode: {args.mode}")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    torch.set_default_device("cuda")
+    torch.set_default_device(device)
 
     comp = KinDynComputations(con.human_urdf_path, con.joints_31dof, root_link="Pelvis")
     comp.set_frame_velocity_representation(Representations.MIXED_REPRESENTATION)
 
-
+    urdf_path = con.human_urdf_path
+    task_name = con.motion_tasks[args.task_idx]
+    link_refs = None
+    
     #####################
     ## Prepare Dataset ##
     #####################
+    if args.mode == "pre_training":
+        # train the model with xsens-mocap data
+        load_data_dir = None
+        ds = dm.XsensDataset(
+            data_dir=load_data_dir,
+            reduce_dofs=True,
+            task=task_name
+        )
+    else:
+        # fine-tune the model with ifeel-mocap data
+        load_data_dir = None
+        pretrained_model_dir = None
+
+
 

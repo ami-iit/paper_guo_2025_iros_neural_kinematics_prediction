@@ -78,7 +78,7 @@ joints_31dof = [
     "jRightKnee_roty", "jRightKnee_rotz", # right knee 24:25
     "jRightAnkle_rotx", "jRightAnkle_roty", "jRightAnkle_rotz", # right ankle 26:28
     "jRightBallFoot_roty", # right ball foot 29
-    "jL5S1_roty", # L5S1 30
+    "jL5S1_roty" # L5S1 30
 ]
 
 links = {

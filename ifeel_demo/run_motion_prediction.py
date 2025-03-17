@@ -118,7 +118,7 @@ if __name__ == '__main__':
         "backward_walking": "./models/finetuned/backward/model_epoch60_0.22817.pt"
     }
     USE_FINETUNED  =True
-    task = cfg.tasks[1]
+    task = cfg.tasks[2]
     print(f"Task: {task}")
 
     loco_task = ["forward_walking", "side_stepping", "backward_walking"]
@@ -131,7 +131,7 @@ if __name__ == '__main__':
     pred_dofs = 31
     avatar_dofs = 66
     t_gt = 0
-    t_pred = 0 # max 60
+    t_pred = 30 # max 60
     window_size = 10
     t_end = window_size - 1
 
@@ -237,7 +237,7 @@ if __name__ == '__main__':
                 counter += 1
                 continue
             else:
-                print(f"step {step}: update the imu buffer")
+                #print(f"step {step}: update the imu buffer")
                 # buffer already full, pop out the left most item
                 # ready for prediction
                 acc_buffer[:, :-1, :] = acc_buffer[:, 1:, :]
@@ -263,6 +263,7 @@ if __name__ == '__main__':
             # read current step t joint state gt (31 dof)
             # NOTE: joint state gt from BAF
             s_gt, sdot_gt = joint_step(joint_states, task, step, joint_mapping)
+            #print(f"step: {step}, s gt jRightShoulder_roty: {s_gt[:, :, 2]}")
             s_gt_tensor = torch.from_numpy(s_gt).to(dtype=torch.float64, device=device)
             sdot_gt_tensor = torch.from_numpy(sdot_gt).to(dtype=torch.float64, device=device)
 
@@ -318,6 +319,11 @@ if __name__ == '__main__':
             #Hb_pred[:3, 3] = pb_future.reshape((3, 1)) + np.array([0, 1, 0]).reshape((3, 1))
             Hb_pred[:3, 3] = pb_future.reshape((3, 1))
 
+            j_name = ["jRightShoulder_rotx", "jRightShoulder_roty", "jRightShoulder_rotz"]
+            j_index = [cfg.joints_66dof.index(item) for item in j_name]
+            for idx in range(len(j_name)):
+                print(f"step:{step}, s_gt {j_name[idx]}: {s_gt_step_new[j_index[idx]]}")
+          
             visualizer.update(
                 [s_gt_step_new, s_pred_step_new],
                 [Hb_gt, Hb_pred],
