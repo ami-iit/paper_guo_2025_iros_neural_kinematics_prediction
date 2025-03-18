@@ -319,15 +319,15 @@ if __name__ == '__main__':
             #Hb_pred[:3, 3] = pb_future.reshape((3, 1)) + np.array([0, 1, 0]).reshape((3, 1))
             Hb_pred[:3, 3] = pb_future.reshape((3, 1))
 
-            j_name = ["jRightShoulder_rotx", "jRightShoulder_roty", "jRightShoulder_rotz"]
+            """ j_name = ["jRightElbow_roty", "jRightElbow_rotz"]
             j_index = [cfg.joints_66dof.index(item) for item in j_name]
             for idx in range(len(j_name)):
-                print(f"step:{step}, s_gt {j_name[idx]}: {s_gt_step_new[j_index[idx]]}")
+                print(f"step:{step}, s_gt {j_name[idx]}: {s_gt_step_new[j_index[idx]]}") """
           
             visualizer.update(
                 [s_gt_step_new, s_pred_step_new],
                 [Hb_gt, Hb_pred],
-                False, None
+                False, None, step
             )
             visualizer.run()
 
