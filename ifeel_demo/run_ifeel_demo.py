@@ -1,18 +1,60 @@
-import numpy as np
 import os
+import numpy as np
 import torch
+import maths
+import zenoh
+import time
+import logging
+import struct
+from typing import Dict, List
+from scipy.signal import butter, filtfilt
+
 import visualizer as vis
 import optimizer as opt
 from JKNet import pMLP
 import config as cfg
-from calibrator import Calibrator
-import maths
+import online_calibrator as oc
 
 from adam.casadi import KinDynComputations as casakin
 from adam import Representations
 
+#---------------------------FUNCTIONS---------------------------#
+msg_dict: Dict[str, List[float]] = {}
+def listener(sample) -> None:
+    r"""Process incoming data and store it in the global dict."""
+    global msg_dict
+    payload = sample.payload
+    key = sample.key_expr
+
+    if len(payload) % 8 != 0:
+        print(f"Error: payload length {len(payload)} is not a multiple of 8 (size of float64).")
+        return
+    float_values = []
+    for i in range(0, len(payload), 8):
+        value = struct.unpack('<d', payload[i:i+8])[0]
+        float_values.append(value)
+    msg_dict[key] = float_values
+
+def extend_joint_state_preds(s, sdot, old_joint_list, new_joint_list):
+    r"""Return the extended joint predictions."""
+    new_dof = len(new_joint_list)
+    s_new, sdot_new = np.zeros(new_dof, ), np.zeros(new_dof, )
+    joint_map = {joint: i for i, joint in enumerate(new_joint_list)}
+    for i, joint in enumerate(old_joint_list):
+        joint_index = joint_map[joint]
+        s_new[joint_index] = s[i]
+        sdot_new[joint_index] = sdot[i]
+    return s_new, sdot_new
+
+def butter_lowpass_filter(data, cutoff=0.1, fs=1.0, order=2):
+    nyquist = 0.5*fs
+    normal_cutoff = cutoff / nyquist
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return np.apply_along_axis(lambda m: filtfilt(b, a, m), axis=0, arr=data)
+
+
 if __name__ == '__main__':
-    # urdf and pre-trained models path
+    #---------------------------CONFIG---------------------------#
     urdf_path = "./urdf/humanSubject01_66dof.urdf"
     model_dirs = {
         "forward_walking": "./models/jknet_forward.pt",
@@ -26,6 +68,10 @@ if __name__ == '__main__':
         "forward_walking_clapping_hands": "./models/finetuned/clapping/model_epoch60_0.31320.pt",
         "backward_walking": "./models/finetuned/backward/model_epoch60_0.22817.pt"
     }
+    # zenoh params
+    ifeel_port_name = "tcp/localhost:7447"
+    baf_port_name = "tcp/localhost:7448"
+    data_logger_name = "iFeel/**"
 
     # bool params
     USE_FINETUNED = True
@@ -60,7 +106,8 @@ if __name__ == '__main__':
     # prepare kindyncomp
     casacomp = casakin(urdfstring=urdf_path, joints_name_list=cfg.joints_31dof)
     casacomp.set_frame_velocity_representation(Representations.MIXED_REPRESENTATION)
-
+    
+    #---------------------------INITIALIZATION---------------------------#
     # prepare the model
     model = pMLP(
         sample=None,
@@ -86,39 +133,111 @@ if __name__ == '__main__':
     Hb_pred = np.matrix([[1.0, 0., 0., 0.], [0., 1.0, 0., 0.],
                          [0., 0., 1.0, 0.], [0., 0., 0., 1.0]])
 
+    ######################################
+    ## Prepare the Zenoh data streaming ##
+    ######################################
+    logging.basicConfig(level=logging.DEBUG)
+    # initialize the zenoh config
+    zenoh_config = zenoh.Config()
+    zenoh_config.insert_json5("mode", '"peer"')
+    zenoh_config.insert_json5("connect/endpoints", f'[{ifeel_port_name}, {baf_port_name}]')
+    # initialize the zenoh session
+    zenoh_session = zenoh.open(zenoh_config)
+    # subsribe to the ifeel and baf ports
+    sub = zenoh_session.declare_subscriber(f"{data_logger_name}", listener)
+
+    # initialize the counters
+    calib_counter = 0
+    buffer_counter = 0
     # joint mapping between BAF joint list and my 31-dof joint list
     joint_mapping = [cfg.joints_31dof.index(item) for item in cfg.joints]
+    # initialize the joint state buffer with zeros
+    s_buffer, sdot_buffer = np.zeros((1, window_size, pred_dofs)), np.zeros((1, window_size, pred_dofs))
+    # initialize the inertial buffer
+    acc_buffer, ori_buffer = np.zeros((1, window_size, 3*5)), np.zeros((1, window_size, 9*5))
+    #---------------------------INFERENCE---------------------------#
+    try:
+        with torch.no_grad():
+            print(f"Start online demo.")
+            while True:
+                print(f"Please keep T-pose for a while...")
+                time.sleep(1)
+                #---------------------------CALIBRATION---------------------------#
+                print(f"Reading T-pose data for calibration, pleaase keep still for 5 seconds...")
+                if calib_counter < 300:
+                    # read a sequence of raw imu ori (as quaternion)
 
-    # initialize the joint state buffer
+                    # calculate the average of the raw imu ori
 
-    # initialize the imu buffer
+                    # calculate the rotation matrix from imu to imuWorld
 
-    # prepare the calibrator
-    # NOTE: should calculate the calibration matrix from online readings!
+                    # calculate the rotation matrix from imuWoeld to World
 
-    counter = 0
-    with torch.no_grad():
-        print(f"start online demo...")
-        while True:
-            print(f"iteration:{counter}")
-            counter += 1
-            # keep reading single-step inertial data from iFeel port
+                    # calculate the calibration matrix of the orientation to the offset in yaw only
+                    calib_counter += 1
+                    continue
+                #---------------------------INERTIAL DATA---------------------------#
+                # read single-step inertial data (acc and ori) from ifeel port
 
-            # keep reading single-step joint of 31-dof from BAF port
+                #---------------------------JOINT STATE DATA---------------------------#
+                # read single-step joint state data (31-dof) from baf port
 
-            # keep reading single-step base data from BAF port
+                #---------------------------BASE DATA---------------------------#
+                # read single-step base pose and velocity from baf port
 
-            # fill the inertial buffer
+                #---------------------------UPDATE BUFFER---------------------------#
+                if buffer_counter < window_size - 1:
+                    print(f"step {buffer_counter}: fill the imu and joint state buffer")
+                    # fill the imu buffer
 
-            # get model prediction of 31-dof
-            s_pred, sdot_pred= model()
+                    # fill the joint state buffer
+                    buffer_counter += 1
+                    continue
+                else:
+                    print(f"imu and joint state buffers are ready!")
+                    # update the imu buffer
+                    if USE_BAF:
+                        print(f"update joint state buffer with BAF data.")
+             
+                
 
-            # pick the prediction at th desired step
 
-            # extend the prediction to 66-dof
+                #---------------------------PREDICTION---------------------------#
+                # convert all data to tensors
 
-            # update the joint state buffer of 31-dof
+                # get model prediction of 31-dof
+                s_pred, sdot_pred = model()
 
-            # update the visualizer: gt from BAF, pred from nn
-            # NOTE: here we have the same base pose for both gt and pred
+                # pick the prediction at the specified step
+                if USE_SMOOTHED_PRED:
+                    s_pred_smoothed = butter_lowpass_filter(
+                        s_pred.cpu().detach().numpy()[0], cutoff=cutoff, fs=60
+                    )
+                    s_pred_step = s_pred_smoothed[t_pred, :]
+                    sdot_pred_smoothed = butter_lowpass_filter(
+                        sdot_pred.cpu().detach().numpy()[0], cutoff=cutoff, fs=60
+                    )
+                    sdot_pred_step = sdot_pred_smoothed[t_pred, :]
+                else:
+                    s_pred_step = s_pred.cpu().detach().numpy()[0][t_pred, :]
+                    sdot_pred_step = sdot_pred.cpu().detach().numpy()[0][t_pred, :]
+
+                # extend the one-step gt and prediction to 66-dof
+                s_pred_step_new, sdot_pred_step_new = extend_joint_state_preds(
+                    s_pred_step, 
+                    sdot_pred_step,
+                    cfg.joints_31dof, cfg.joints_66dof
+                )
+                s_gt_step_new, sdot_gt_step_new = extend_joint_state_preds()
+
+                #---------------------------VISUALIZATION---------------------------#
+                # update the base pose
+
+                # update the visualizer: gt from BAF, pred from nn
+                visualizer.update()
+                visualizer.run()
+    #---------------------------INTERUPT---------------------------#
+    except KeyboardInterrupt:
+        pass
+
 
