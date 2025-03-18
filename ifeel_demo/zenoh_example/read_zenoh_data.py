@@ -4,7 +4,8 @@ import logging
 import struct
 import config as cfg
 import visualizer as vis
-
+import numpy as np
+import maths
 
 def extend_joint_state_preds(s, sdot, old_joint_list, new_joint_list):
     r"""Return the extended joint predictions."""
