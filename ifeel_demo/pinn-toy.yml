@@ -1,0 +1,25 @@
+name: pinn-toy
+channels:
+  - conda-forge
+dependencies:
+  # aitviewer's dependency usd-core does not support python=3.12
+  # optional: 3.10.14
+  - python==3.10.11
+  - pip
+  # pytorch actually used: 2.3.1 py3.10_cuda12.1_cudnn8.9.2_0
+  - pytorch==2.0.0
+  # avoid the error of module 'numpy' has no attribute 'bool'
+  - numpy==1.22.4
+  - pandas
+  - matplotlib
+  - bipedal-locomotion-framework==0.18.0
+  - yarp==3.9.0
+  - idyntree==12.3.3
+  - robot_descriptions==1.8.1
+  - meshcat-python
+  - manifpy
+  # also adam: adam-robotics, 0.1.1.dev4, pypi_0, pypi
+  - pip:
+    - aitviewer
+    - chumpy
+

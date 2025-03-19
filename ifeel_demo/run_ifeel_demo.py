@@ -82,15 +82,15 @@ if __name__ == '__main__':
 
     # keys to rtrieve the data
     ifeel_keys = {
-        "Pelvis": {"acc": "node3/linAcc", "ori": "node3/orientation"}, # node3
-        "LeftForeArm": {"acc": "node4/linAcc", "ori": "node4/orientation"}, # node4
-        "RightForeArm": {"acc": "node8/linAcc", "ori": "node8/orientation"}, # node8
-        "LeftLowerLeg": {"acc": "node10/linAcc", "ori": "node10/orientation"}, # node10
-        "RightLowerLeg": {"acc": "node12/linAcc", "ori": "node12/orientation"}, # node12
+        "Pelvis": {"acc": "iFeel/node3/linAcc", "ori": "iFeel/node3/orientation"}, # node3
+        "LeftForeArm": {"acc": "iFeel/node4/linAcc", "ori": "iFeel/node4/orientation"}, # node4
+        "RightForeArm": {"acc": "iFeel/node8/linAcc", "ori": "iFeel/node8/orientation"}, # node8
+        "LeftLowerLeg": {"acc": "iFeel/node10/linAcc", "ori": "iFeel/node10/orientation"}, # node10
+        "RightLowerLeg": {"acc": "iFeel/node12/linAcc", "ori": "iFeel/node12/orientation"}, # node12
     }
     joint_state_keys = {
-        "s": "iFeel/joint_state/positions", # (1, 31)
-        "sdot": "iFeel/joint_state/vlocities" # (1, 31)
+        "s": "iFeel/joints_state/positions", # (1, 31)
+        "sdot": "iFeel/joints_state/vlocities" # (1, 31)
     }
     base_keys = {
         "pb":"iFeel/human_state/base_position", # (1, 3)
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     pred_dofs = 31
     avatar_dofs = 66
     t_gt = 0
-    t_pred = 30 # max 60
+    t_pred = 0 # max 59 (python index style)
     window_size = 10
     t_end = window_size - 1
     cutoff = 20
@@ -169,7 +169,7 @@ if __name__ == '__main__':
     # initialize the zenoh config
     zenoh_config = zenoh.Config()
     zenoh_config.insert_json5("mode", '"peer"')
-    zenoh_config.insert_json5("connect/endpoints", f'[{ifeel_port_name}, {baf_port_name}]')
+    zenoh_config.insert_json5("connect/endpoints", '["tcp/localhost:7447", "tcp/localhost:7448"]')
     # initialize the zenoh session
     zenoh_session = zenoh.open(zenoh_config)
     # subsribe to the ifeel and baf ports
