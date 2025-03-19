@@ -8,6 +8,7 @@ import logging
 import struct
 from typing import Dict, List
 from scipy.signal import butter, filtfilt
+import argparse
 
 import visualizer as vis
 import optimizer as opt
@@ -57,6 +58,10 @@ def from_numpy_to_tensor(arr, device):
 
 if __name__ == '__main__':
     #---------------------------CONFIG---------------------------#
+    parser= argparse.ArgumentParser()
+    parser.add_argument("--task", type=int, default=0, help="Task index,default is forward walking.")
+    args = parser.parse_args()
+
     urdf_path = "./urdf/humanSubject01_66dof.urdf"
     model_dirs = {
         "forward_walking": "./models/jknet_forward.pt",
@@ -94,7 +99,6 @@ if __name__ == '__main__':
         "vangular": "iFeel/human_state/base_angular_velocity" # (1, 3)
     }
 
-
     # bool params
     USE_FINETUNED = True
     USE_BAF = True
@@ -110,7 +114,10 @@ if __name__ == '__main__':
     cutoff = 20
 
     # TODO: maybe use human command to change motion mode?
-    task = cfg.tasks[0]
+    if args.task is not None:
+        task = cfg.tasks[args.task]
+    else:
+        task = cfg.tasks[0] # manually set the task
     print(f"Current task: {task}")
 
     # check if wholbody task
