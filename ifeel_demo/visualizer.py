@@ -64,7 +64,7 @@ class HumanURDFVisualizer:
         self.visualizer.camera().setPosition(root)
         self.visualizer.camera().setTarget(target)
 
-    def update(self, s_list, H_B_list, fix_camera, camera_offset, step):
+    def update(self, s_list, H_B_list, fix_camera, camera_offset):
         r"""
         Update the models with respecttive joint positions (s) and base poses (H).
         """
@@ -73,7 +73,7 @@ class HumanURDFVisualizer:
             raise ValueError(f"s_list and H_B_list must have the same length!")
         
         s_idyntree_list = [idyntree.VectorDynSize(s) for s in s_list]
-        print(f"step:{step}, Joint positions: {s_idyntree_list[0]}")
+        #print(f"step:{step}, Joint positions: {s_idyntree_list[0]}")
         T_b_list = [idyntree.Transform() for _ in range(len(H_B_list))]
         for i, H_B in enumerate(H_B_list):
             T_b_list[i].fromHomogeneousTransform(idyntree.Matrix4x4(H_B))
